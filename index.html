@@ -1,456 +1,162 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LUMA — Smart Desk Lamp</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-    :root{color-scheme:dark;--bg:#080b12;--panel:rgba(19,24,36,.82);--panel2:#171d2b;--text:#f4f6fb;--muted:#98a3b8;--line:rgba(255,255,255,.09);--accent:#b9f27c;--accent2:#8ee9d4;--warning:#ffd18a;--danger:#ff929c;--warm:#ffbd72}
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;color:var(--text);font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif;background:radial-gradient(700px 460px at 4% -4%,rgba(185,242,124,.12),transparent 66%),radial-gradient(650px 480px at 100% 15%,rgba(105,139,255,.12),transparent 65%),var(--bg);background-attachment:fixed}
-    button,input{font:inherit}button{transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}
-    .shell{max-width:1180px;margin:auto;padding:28px 22px 52px}
-    header{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:26px}
-    .brand{display:flex;align-items:center;gap:13px}.logo{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#d7ff9c,#8ee9d4);color:#10170d;font-size:25px;box-shadow:0 8px 32px rgba(185,242,124,.16)}
-    h1{font:700 clamp(23px,4vw,31px)/1.1 'Space Grotesk',sans-serif;letter-spacing:-1.1px;margin:0}.subtitle{margin:6px 0 0;color:var(--muted);font-size:12px;letter-spacing:.2px}
-    .status{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:rgba(255,255,255,.035);padding:11px 15px;border-radius:999px;font-size:12px;color:var(--muted);white-space:nowrap;backdrop-filter:blur(12px)}.dot{width:8px;height:8px;border-radius:50%;background:#7e879a;box-shadow:0 0 0 4px rgba(126,135,154,.12)}.status.online{color:var(--accent)}.status.online .dot{background:var(--accent);box-shadow:0 0 0 4px rgba(185,242,124,.13)}
-    .hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1.3fr .7fr;gap:22px;align-items:center;min-height:220px;padding:30px 34px;margin-bottom:20px;border:1px solid rgba(255,255,255,.1);border-radius:28px;background:linear-gradient(112deg,rgba(29,39,48,.96),rgba(18,25,39,.94) 58%,rgba(39,42,46,.9));box-shadow:0 24px 70px rgba(0,0,0,.2)}.hero:before{content:'';position:absolute;width:360px;height:360px;right:6%;top:-65%;border-radius:50%;background:rgba(185,242,124,.12);filter:blur(45px);pointer-events:none}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase}.eyebrow:before{content:'';width:18px;height:1px;background:currentColor}.hero h2{font:600 clamp(27px,4.4vw,43px)/1.07 'Space Grotesk',sans-serif;letter-spacing:-1.6px;margin:14px 0 12px;max-width:550px}.hero h2 span{color:var(--accent)}.hero p{max-width:500px;color:#aab4c5;font-size:13px;line-height:1.7;margin:0}.hero-visual{position:relative;display:flex;justify-content:center;align-items:center;min-height:150px}.lamp-glow{position:absolute;width:190px;height:130px;border-radius:50%;background:rgba(255,213,140,.13);filter:blur(32px)}.lamp-art{position:relative;width:190px;height:150px;filter:drop-shadow(0 12px 20px rgba(0,0,0,.3))}.lamp-shade{position:absolute;top:18px;left:54px;width:94px;height:42px;background:linear-gradient(145deg,#eff7dc,#a9c58a);border-radius:52px 52px 15px 15px;transform:rotate(-9deg);box-shadow:0 14px 35px rgba(255,220,147,.13)}.lamp-arm{position:absolute;top:51px;left:98px;width:9px;height:65px;background:linear-gradient(90deg,#7b8794,#d3d9d7,#6b7582);border-radius:9px;transform:rotate(22deg);transform-origin:top}.lamp-joint{position:absolute;top:46px;left:91px;width:22px;height:22px;border-radius:50%;background:#bfc9c6;border:5px solid #68757e}.lamp-base{position:absolute;bottom:12px;left:53px;width:90px;height:13px;border-radius:50%;background:linear-gradient(#dce5dc,#7e8b88);transform:skewX(-20deg)}.hero-chip{position:absolute;right:0;bottom:0;border:1px solid rgba(255,255,255,.1);background:rgba(7,11,17,.45);border-radius:12px;padding:9px 12px;font-size:10px;color:#c5cedc;backdrop-filter:blur(12px)}.hero-chip strong{color:var(--accent);font-weight:700}
-    .grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(310px,.85fr);gap:18px;align-items:start}.card{border:1px solid var(--line);border-radius:23px;background:var(--panel);box-shadow:0 16px 50px rgba(0,0,0,.16);padding:25px;backdrop-filter:blur(18px)}.card h2{font:600 18px 'Space Grotesk',sans-serif;margin:0 0 7px;letter-spacing:-.35px}.desc{color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 21px}
-    .channel{border:1px solid rgba(255,255,255,.075);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border-radius:18px;padding:18px;margin-top:13px}.channel-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.channel-name{display:flex;align-items:center;gap:12px}.bulb{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:22px}.white .bulb{background:rgba(216,229,255,.1);color:#e6edff}.warm .bulb{background:rgba(255,189,114,.12);color:var(--warm)}.channel h3{margin:0;font-size:14px;font-weight:700}.channel small{display:block;margin-top:4px;color:var(--muted);font-size:11px}.value{font:600 23px 'Space Grotesk',sans-serif;font-variant-numeric:tabular-nums}.range-row{display:flex;align-items:center;gap:13px;margin:21px 0 13px}.range-row>span{color:var(--muted)}input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;height:5px}.warm input[type=range]{accent-color:var(--warm)}.range-label{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
-    button{border:1px solid var(--line);background:rgba(255,255,255,.045);color:var(--text);border-radius:12px;padding:10px 14px;cursor:pointer;font-size:12px;font-weight:700}button:hover{transform:translateY(-1px);background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.17)}button.primary{background:var(--accent);border-color:var(--accent);color:#11170c;box-shadow:0 5px 20px rgba(185,242,124,.08)}button.primary:hover{background:#d0ff9e;box-shadow:0 7px 24px rgba(185,242,124,.15)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.presets button{font-size:11px;padding:10px 12px}.presets button:first-child{color:#ff9ba4}
-    .field{margin:14px 0}label{display:block;font-size:11px;color:#b0bacb;margin-bottom:7px;font-weight:600}input[type=text],input[type=password],input[type=number]{width:100%;padding:12px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(6,10,18,.72);color:var(--text);outline:none;font-size:13px}input:focus{border-color:rgba(185,242,124,.7);box-shadow:0 0 0 3px rgba(185,242,124,.08)}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}.hint{color:var(--muted);font-size:11px;line-height:1.7;margin:16px 0 0}.notice{border:1px solid rgba(255,209,138,.2);background:rgba(255,209,138,.055);color:#e7cb9e;padding:13px 14px;border-radius:13px;font-size:11px;line-height:1.65;margin-top:17px}.log{margin-top:17px;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.055);background:rgba(4,7,13,.65);color:#aab7ca;font:11px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;min-height:45px;overflow-wrap:anywhere}.timer-section{margin-top:18px}.timer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.timer-grid .channel{margin-top:0;padding:17px}.timer-grid .channel h3{font-size:13px}.timer-icon{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;background:rgba(185,242,124,.1);color:var(--accent);margin-bottom:10px;font-size:15px}.timer-grid .actions button{flex:1}.footer{text-align:center;color:#737f94;font-size:11px;margin-top:25px;letter-spacing:.3px}
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0e17"><title>LUMA V2 — Intelligent Lighting Studio</title>
+<script src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{color-scheme:dark;--bg:#090d16;--panel:#151c2a;--panel2:#1c2635;--line:#2b3545;--text:#f5f7fc;--muted:#9aa8bc;--lime:#bdf58b;--teal:#8be6d5;--orange:#ffc18a;--red:#ff9ca5}*{box-sizing:border-box}body{margin:0;background:radial-gradient(700px 500px at 0 0,#1c302b 0,transparent 75%),radial-gradient(650px 420px at 100% 0,#18213d 0,transparent 70%),var(--bg);color:var(--text);font:14px 'DM Sans',sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:12px;background:#243042;color:var(--text);padding:10px 14px;font-weight:700;transition:.18s}button:hover{filter:brightness(1.15)}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:var(--lime);color:#152010;border-color:var(--lime)}.danger{color:var(--red)}.shell{max-width:1320px;margin:auto;padding:24px 20px 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:22px}.brand{display:flex;align-items:center;gap:12px}.logo{display:grid;place-items:center;width:47px;height:47px;border-radius:15px;background:linear-gradient(130deg,var(--lime),var(--teal));font-size:25px;color:#10221a}.brand h1{margin:0;font:700 27px 'Space Grotesk';letter-spacing:-1px}.sub,.hint{color:var(--muted);font-size:12px;line-height:1.6}.sub{margin:3px 0}.status{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:10px 14px;color:var(--muted)}.dot{width:9px;height:9px;border-radius:50%;background:#8290a4}.online .dot{background:var(--lime);box-shadow:0 0 12px var(--lime)}.online{color:var(--lime)}.layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px}.sidebar,.card{border:1px solid var(--line);background:rgba(21,28,42,.92);border-radius:22px}.sidebar{padding:16px;align-self:start;position:sticky;top:16px}.nav{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--muted);margin-bottom:6px}.nav.active{background:#293b35;color:var(--lime)}.nav span{margin-right:10px}.main{min-width:0}.view{display:none}.view.active{display:block}.hero{display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:16px;padding:28px;border:1px solid #364238;border-radius:24px;background:linear-gradient(110deg,#23372f,#17202c 70%,#202735);margin-bottom:16px;min-height:250px;overflow:hidden}.eyebrow{font-size:11px;color:var(--lime);font-weight:700;letter-spacing:2px;text-transform:uppercase}.hero h2{font:700 clamp(29px,4vw,46px)/1.08 'Space Grotesk';letter-spacing:-1.7px;margin:14px 0}.hero h2 em{font-style:normal;color:var(--lime)}.lamp-preview{height:205px;display:grid;place-items:center;position:relative;isolation:isolate}.halo{position:absolute;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,var(--light-color,#ffd69d),transparent 68%);opacity:var(--glow,0);filter:blur(15px);transition:.4s;z-index:-1}.lamp{font-size:112px;transform:rotate(-12deg);filter:drop-shadow(0 0 15px rgba(255,220,140,.18))}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px}.card{padding:21px;min-width:0}.stat-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1.1px;text-transform:uppercase}.stat-val{font:700 23px 'Space Grotesk';margin:8px 0 4px;overflow-wrap:anywhere}.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}.stack{display:grid;gap:16px}h3{font:600 19px 'Space Grotesk';margin:0 0 7px}h4{margin:0 0 10px;font-size:14px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.channel{border:1px solid var(--line);border-radius:16px;padding:17px;margin-top:15px;background:#1a2331}.channel strong{font-size:15px}.value{font:700 23px 'Space Grotesk'}input[type=range]{width:100%;accent-color:var(--lime);margin:18px 0 8px;cursor:pointer}.warm input[type=range]{accent-color:var(--orange)}.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.scene-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.scene{min-height:94px;text-align:left;background:linear-gradient(145deg,#273347,#1b2432);padding:13px}.scene b{display:block;margin:8px 0 4px}.scene small{color:var(--muted)}.scene.selected{border-color:var(--lime)}.buttons{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.field{margin:13px 0}.field label{display:block;color:#c0cada;font-size:12px;margin-bottom:7px}.field input,.field select{width:100%;background:#0e1520;color:var(--text);border:1px solid #394355;border-radius:10px;padding:11px;outline:none}.field input:focus{border-color:var(--lime)}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.switch{appearance:none;width:45px;height:26px;border-radius:20px;background:#536070;position:relative;cursor:pointer;flex-shrink:0}.switch:before{content:'';position:absolute;width:20px;height:20px;background:white;border-radius:50%;top:3px;left:3px;transition:.2s}.switch:checked{background:#a5d779}.switch:checked:before{transform:translateX(19px)}.rule{border:1px solid var(--line);border-radius:14px;padding:15px;margin:12px 0}.muted{color:var(--muted)}.log{font:11px/1.7 ui-monospace,monospace;background:#090f19;border:1px solid var(--line);border-radius:12px;padding:13px;white-space:pre-wrap;max-height:210px;overflow:auto;overflow-wrap:anywhere}.chart{display:flex;align-items:end;gap:5px;height:140px;padding:12px 4px 0;border-bottom:1px solid var(--line)}.bar{flex:1;background:linear-gradient(var(--lime),#497f6a);border-radius:5px 5px 0 0;min-height:2px;position:relative}.bar:hover:after{content:attr(title);position:absolute;bottom:100%;left:0;background:#fff;color:#111;padding:5px;border-radius:5px;white-space:nowrap;font-size:10px;z-index:2}.note{padding:12px;border:1px solid #65573b;background:#3a3020;border-radius:12px;color:#f4d7a6;font-size:12px;line-height:1.6}.pill{font-size:11px;border-radius:20px;padding:5px 9px;background:#293a34;color:var(--lime)}.hidden{display:none!important}.footer{text-align:center;color:var(--muted);font-size:11px;padding:28px}.metric{margin:8px 0}.metric b{float:right}.timer-countdown{margin:0 0 16px;padding:19px 22px;border:1px solid #405343;border-radius:19px;background:linear-gradient(110deg,rgba(37,58,47,.92),rgba(24,34,47,.94));display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.timer-countdown .timer-big{font:700 clamp(27px,4vw,38px)/1.1 'Space Grotesk';letter-spacing:1px;color:var(--lime);font-variant-numeric:tabular-nums}.timer-countdown .timer-meta{min-width:180px}.timer-countdown .timer-caption{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px}.timer-countdown .timer-sub{font-size:12px;color:var(--muted);margin-top:6px}.hero-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.connect-home{background:var(--teal);border-color:var(--teal);color:#10211e}.connect-home.connected{background:#293a34;color:var(--lime);border-color:#47634e}.divider{border-top:1px solid var(--line);margin:18px 0}@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.layout{grid-template-columns:175px minmax(0,1fr)}}@media(max-width:700px){.shell{padding:14px}.layout{display:block}.sidebar{position:static;display:flex;overflow-x:auto;gap:6px;margin-bottom:14px;padding:8px}.nav{white-space:nowrap;width:auto;margin:0;padding:11px}.hero{grid-template-columns:1fr;padding:22px}.lamp-preview{height:130px}.lamp{font-size:75px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-val{font-size:18px}.scene-grid{grid-template-columns:repeat(2,1fr)}.fields{grid-template-columns:1fr}.card{padding:17px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
-    .quick-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 20px}
-    .stat-card{border:1px solid var(--line);border-radius:19px;padding:17px 20px;background:linear-gradient(135deg,rgba(23,29,43,.88),rgba(14,19,29,.8));box-shadow:0 12px 32px rgba(0,0,0,.12);min-width:0}
-    .stat-label{font-size:9px;letter-spacing:1.6px;color:var(--muted);font-weight:700;margin-bottom:9px}
-    .stat-value{font:600 clamp(18px,2.4vw,25px)/1.2 'Space Grotesk',sans-serif;letter-spacing:-.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .stat-sub{font-size:11px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .percent{display:inline-block;margin-left:8px;padding:5px 7px;border-radius:8px;background:rgba(185,242,124,.1);color:var(--accent);font:700 10px 'DM Sans',sans-serif;vertical-align:middle}
-    .warm .percent{background:rgba(255,189,114,.1);color:var(--warm)}
-    .hero-visual.lit .lamp-glow{opacity:var(--glow-opacity,.2);background:radial-gradient(ellipse,rgba(255,224,170,.75),rgba(255,190,112,.2) 45%,transparent 72%);transform:scale(var(--glow-scale,1));transition:opacity .3s,transform .3s}
-    .hero-visual.lit .lamp-shade{background:linear-gradient(145deg,var(--shade-top,#fff4d5),var(--shade-bottom,#b9d39d));box-shadow:0 0 28px var(--shade-glow,rgba(255,220,147,.15));transition:all .3s}
-    .hero-visual .lamp-glow{opacity:.12;transition:opacity .3s,transform .3s}
-    .presets button{border-color:rgba(185,242,124,.13)}
-    @media(max-width:700px){.quick-stats{grid-template-columns:1fr;gap:9px}.stat-card{padding:14px 16px}.stat-value{font-size:22px}}
-    @media(max-width:850px){.hero{grid-template-columns:1fr .55fr;padding:26px}.grid{grid-template-columns:1fr}.timer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:580px){.shell{padding:19px 13px 35px}header{align-items:flex-start;flex-direction:column;margin-bottom:18px}.status{align-self:flex-start}.hero{grid-template-columns:1fr;padding:24px 21px;min-height:0}.hero-visual{min-height:125px;margin-top:-3px}.hero h2{font-size:32px}.hero-chip{right:3%;bottom:0}.card{padding:19px;border-radius:20px}.timer-grid{grid-template-columns:1fr}.two{gap:9px}.actions button{flex-grow:1}}
-    @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
-  </style>
+/* ===== LUMA V2.1 · premium visual refresh (presentation-only) ===== */
+:root{
+ --bg:#080c14;--panel:rgba(19,27,41,.82);--panel2:rgba(26,37,54,.88);
+ --line:rgba(173,195,220,.13);--text:#f4f7fb;--muted:#9baac0;
+ --lime:#c8f58b;--teal:#8ce9dc;--orange:#ffc68e;--red:#ff9eaa;
+ --glow:rgba(190,245,139,.16)
+}
+html{scroll-behavior:smooth}
+body{
+ background:
+  radial-gradient(900px 600px at 4% -12%,rgba(136,225,185,.17),transparent 66%),
+  radial-gradient(760px 540px at 100% 4%,rgba(120,143,255,.17),transparent 65%),
+  radial-gradient(650px 500px at 55% 100%,rgba(255,190,132,.07),transparent 68%),
+  var(--bg);
+ background-attachment:fixed;
+}
+.shell{max-width:1450px;padding:30px clamp(14px,3vw,38px) 54px}
+.top{margin-bottom:28px;padding:0 2px}
+.brand{gap:15px}
+.logo{width:54px;height:54px;border-radius:18px;box-shadow:0 10px 35px rgba(188,245,139,.18),inset 0 1px 0 #ffffff80;font-size:28px}
+.brand h1{font-size:30px;letter-spacing:-1.4px}
+.brand .sub{font-size:12px;letter-spacing:.25px}
+.status{background:rgba(16,24,37,.76);backdrop-filter:blur(18px);border-color:var(--line);padding:11px 16px;box-shadow:0 8px 30px #0002}
+.layout{grid-template-columns:232px minmax(0,1fr);gap:22px}
+.sidebar,.card{background:linear-gradient(155deg,rgba(24,34,51,.91),rgba(14,21,33,.91));border:1px solid var(--line);box-shadow:0 18px 55px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.035);backdrop-filter:blur(18px)}
+.sidebar{padding:13px;border-radius:22px}
+.nav{position:relative;padding:13px 14px;border-radius:13px;font-size:13px;letter-spacing:.1px;transition:background .2s,color .2s,transform .2s}
+.nav:hover{background:rgba(255,255,255,.055);color:var(--text);transform:translateX(2px)}
+.nav.active{background:linear-gradient(100deg,rgba(190,245,139,.16),rgba(140,233,220,.07));color:var(--lime);box-shadow:inset 3px 0 0 var(--lime)}
+.nav span{display:inline-grid;place-items:center;width:22px;margin-right:9px;font-size:16px}
+.hero{position:relative;border:1px solid rgba(191,235,191,.18);border-radius:28px;padding:clamp(24px,4vw,42px);min-height:285px;background:linear-gradient(115deg,rgba(36,62,52,.96),rgba(22,34,47,.97) 58%,rgba(30,39,58,.94));box-shadow:0 25px 70px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08);isolation:isolate}
+.hero:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;background:radial-gradient(circle at 82% 50%,rgba(203,245,151,.18),transparent 32%),linear-gradient(135deg,transparent 45%,rgba(255,255,255,.025));pointer-events:none}
+.hero h2{font-size:clamp(34px,4.4vw,54px);letter-spacing:-2.2px;max-width:600px}
+.hero .sub{max-width:500px;font-size:14px;line-height:1.8;color:#c1ccda}
+.eyebrow{letter-spacing:2.4px;font-size:10px}
+.lamp-preview{height:220px}
+.lamp{font-size:124px;filter:drop-shadow(0 14px 25px rgba(255,215,155,.22));animation:lampFloat 5s ease-in-out infinite}
+@keyframes lampFloat{0%,100%{transform:translateY(0) rotate(-12deg)}50%{transform:translateY(-7px) rotate(-10deg)}}
+.halo{width:240px;height:240px;filter:blur(22px)}
+.stats{gap:14px;margin-bottom:18px}
+.stats .card{position:relative;overflow:hidden;padding:19px 20px;border-radius:19px;transition:transform .2s,border-color .2s,box-shadow .2s}
+.stats .card:after{content:"";position:absolute;right:-30px;top:-40px;width:100px;height:100px;border-radius:50%;background:var(--glow);filter:blur(25px);pointer-events:none}
+.stats .card:hover,.card:hover{border-color:rgba(190,245,139,.23);box-shadow:0 22px 60px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.045)}
+.stats .card:hover{transform:translateY(-3px)}
+.stat-label{letter-spacing:1.4px;font-size:9px}
+.stat-val{font-size:25px;letter-spacing:-.6px}
+.card{border-radius:21px;padding:23px;transition:border-color .2s,box-shadow .2s}
+h3{font-size:20px;letter-spacing:-.45px;margin-bottom:8px}
+h4{letter-spacing:.1px}
+.channel,.rule{background:linear-gradient(145deg,rgba(30,43,61,.9),rgba(20,29,43,.9));border-color:rgba(173,195,220,.13);border-radius:17px}
+.channel{padding:19px}
+.scene-grid{gap:12px}
+.scene{border-radius:16px;min-height:108px;background:linear-gradient(145deg,rgba(43,59,79,.92),rgba(25,36,53,.95));border-color:rgba(173,195,220,.13);transition:transform .2s,border-color .2s,box-shadow .2s}
+.scene:hover{transform:translateY(-3px);border-color:rgba(200,245,139,.5);box-shadow:0 12px 28px #0003}
+.scene.selected{background:linear-gradient(145deg,rgba(57,82,65,.9),rgba(27,44,43,.95));box-shadow:0 0 0 1px rgba(200,245,139,.12)}
+button{border-radius:13px;padding:11px 16px;border-color:rgba(173,195,220,.14);background:linear-gradient(145deg,#2b394d,#202c3d);box-shadow:0 5px 15px rgba(0,0,0,.12)}
+button:active{transform:translateY(1px) scale(.985)}
+button.primary{background:linear-gradient(135deg,#d5ff9d,#a8e8a5);border-color:#c8f58b;color:#172416;box-shadow:0 8px 24px rgba(190,245,139,.17)}
+.connect-home{background:linear-gradient(135deg,#a6f0df,#79d8d0);border-color:#8ce9dc;color:#10251f;box-shadow:0 8px 22px rgba(140,233,220,.13)}
+.field input,.field select{background:rgba(8,14,24,.78);border-color:rgba(173,195,220,.2);border-radius:13px;padding:13px 14px;transition:border-color .2s,box-shadow .2s}
+.field input:focus,.field select:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(200,245,139,.1)}
+.field label{font-size:12px;letter-spacing:.1px}
+input[type=range]{height:6px;border-radius:10px}
+.switch{box-shadow:inset 0 1px 3px #0005}
+.log{background:rgba(5,10,18,.88);border-color:rgba(173,195,220,.14);border-radius:15px;padding:16px;color:#d7e5f5;line-height:1.85}
+.note{background:linear-gradient(120deg,rgba(75,57,30,.72),rgba(49,39,27,.72));border-color:rgba(255,198,142,.22);border-radius:14px}
+.timer-countdown{border-color:rgba(190,245,139,.22);border-radius:21px;background:linear-gradient(110deg,rgba(38,65,49,.94),rgba(20,34,47,.96));box-shadow:0 15px 40px #0002}
+.pill{border:1px solid rgba(190,245,139,.2);background:rgba(190,245,139,.1);padding:7px 12px}
+.footer{letter-spacing:1.2px;font-size:10px;opacity:.8}
+::selection{background:rgba(200,245,139,.28);color:white}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+@media(max-width:1050px){.layout{grid-template-columns:190px minmax(0,1fr)}.hero{min-height:250px}}
+@media(max-width:700px){.shell{padding:16px 12px 36px}.top{align-items:flex-start}.brand h1{font-size:25px}.logo{width:46px;height:46px}.layout{display:block}.sidebar{display:flex;gap:5px;overflow-x:auto;padding:8px}.nav{padding:11px 12px}.nav:hover{transform:none}.hero{border-radius:22px;min-height:0}.hero h2{font-size:36px}.lamp-preview{height:145px}.lamp{font-size:84px}.card{border-radius:18px;padding:18px}.stats .card{padding:15px}.stat-val{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.lamp{animation:none}html{scroll-behavior:auto}}
+
+</style>
 </head>
-<body>
-  <div class="shell">
-    <header>
-      <div class="brand">
-        <div class="logo">✦</div>
-        <div>
-          <h1>LUMA <span style="font-weight:400;color:#9ba7c4">/ Smart Desk Lamp</span></h1>
-          <p class="subtitle">Two-channel lighting control · ESP32 + MQTT</p>
-        </div>
-      </div>
-      <div class="status" id="status"><span class="dot"></span><span id="statusText">Not connected</span></div>
-    </header>
-
-    <section class="hero" aria-label="LUMA overview">
-      <div>
-        <div class="eyebrow">Your space, your light</div>
-        <h2>Find your <span>perfect glow.</span></h2>
-        <p>A calmer, smarter workspace starts here. Fine-tune both light channels, save your vibe, and let LUMA handle the timing.</p>
-      </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="lamp-glow"></div>
-        <div class="lamp-art"><div class="lamp-shade"></div><div class="lamp-joint"></div><div class="lamp-arm"></div><div class="lamp-base"></div></div>
-        <div class="hero-chip">✦ &nbsp; <strong id="heroLampState">LIGHT, REIMAGINED</strong></div>
-      </div>
-    </section>
-
-    <section class="quick-stats" aria-label="Live lamp overview">
-      <div class="stat-card"><div class="stat-label">LOCAL TIME · IST</div><div class="stat-value" id="liveClock">--:--:--</div><div class="stat-sub" id="liveDate">Waiting for clock…</div></div>
-      <div class="stat-card"><div class="stat-label">LAMP OUTPUT</div><div class="stat-value" id="lampOutput">OFF</div><div class="stat-sub" id="lampOutputDetail">White 0% · Warm 0%</div></div>
-      <div class="stat-card"><div class="stat-label">NEXT SCHEDULE</div><div class="stat-value" id="nextSchedule">Not set</div><div class="stat-sub" id="nextScheduleDetail">Save a daily schedule to preview it</div></div>
-    </section>
-
-    <main class="grid">
-      <section class="card">
-        <h2>Your lighting</h2>
-        <p class="desc">Adjust each LED channel independently. Changes publish to your ESP32 over MQTT.</p>
-
-        <div class="channel white">
-          <div class="channel-top">
-            <div class="channel-name"><div class="bulb">☼</div><div><h3>Cool / White</h3><small>White LED channel</small></div></div>
-            <div class="value"><span id="whiteValue">0</span><span style="font-size:13px;color:var(--muted)"> / 255</span><span class="percent" id="whitePercent">0%</span></div>
-          </div>
-          <div class="range-row"><span style="color:var(--muted)">☾</span><input id="whiteSlider" type="range" min="0" max="255" value="0" aria-label="White LED brightness"><span>☼</span></div>
-          <div class="range-label"><span>Off</span><span>Full brightness</span></div>
-        </div>
-
-        <div class="channel warm">
-          <div class="channel-top">
-            <div class="channel-name"><div class="bulb">☀</div><div><h3>Warm White</h3><small>Warm LED channel</small></div></div>
-            <div class="value"><span id="warmValue">0</span><span style="font-size:13px;color:var(--muted)"> / 255</span><span class="percent" id="warmPercent">0%</span></div>
-          </div>
-          <div class="range-row"><span style="color:var(--muted)">☾</span><input id="warmSlider" type="range" min="0" max="255" value="0" aria-label="Warm LED brightness"><span>☀</span></div>
-          <div class="range-label"><span>Off</span><span>Full brightness</span></div>
-        </div>
-
-        <div class="presets">
-          <button id="allOff">All off</button>
-          <button id="study">Study · 220 / 35</button>
-          <button id="relax">Relax · 25 / 210</button>
-          <button id="bright">Bright · 255 / 255</button>
-          <button id="reading">Reading</button>
-          <button id="gaming">Gaming</button>
-          <button id="night">Night light</button>
-        </div>
-        <p class="hint">Sliders send values from 0 to 255. Presets send to both channels. You must connect to MQTT before commands can be sent.</p>
-      </section>
-
-      <aside class="card">
-        <h2>MQTT connection</h2>
-        <p class="desc">Use the same public test broker configured in the ESP32 firmware.</p>
-        <form id="settingsForm">
-          <div class="field">
-            <label for="host">Broker host</label>
-            <input id="host" type="text" value="broker.emqx.io" autocomplete="off" required>
-          </div>
-          <div class="two">
-            <div class="field">
-              <label for="port">WebSocket port</label>
-              <input id="port" type="number" min="1" max="65535" value="8084" required>
-            </div>
-            <div class="field">
-              <label for="path">WebSocket path</label>
-              <input id="path" type="text" value="/mqtt" required>
-            </div>
-          </div>
-          <div class="field">
-            <label for="username">Username (leave blank for public test broker)</label>
-            <input id="username" type="text" autocomplete="username">
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" type="password" autocomplete="current-password">
-          </div>
-          <div class="field">
-            <label for="clientId">Browser client ID (must be unique)</label>
-            <input id="clientId" type="text" value="" required>
-          </div>
-          <div class="actions">
-            <button class="primary" type="submit" id="connectBtn">Connect</button>
-            <button type="button" id="disconnectBtn">Disconnect</button>
-            <button type="button" id="saveBtn">Save settings</button>
-          </div>
-        </form>
-        <div class="log" id="log" role="status">Ready. Enter settings and click Connect.</div>
-        <div class="notice"><strong>Public broker warning:</strong> this broker is for testing. Other people may see or publish messages on public topics. Do not use it for private data or as a secure permanent control system.</div>
-        <p class="hint">Settings are saved in this browser's localStorage. They are not encrypted. Avoid saving passwords on shared computers. For HTTPS-hosted pages, use a secure WSS endpoint rather than plain WS.</p>
-      </aside>
-    </main>
-    <section class="card timer-section">
-      <h2>Timers & automation</h2>
-      <p class="desc">Countdown and sleep timers run on the ESP32. Scheduled ON/OFF uses India Standard Time (IST) from NTP while Wi-Fi is connected.</p>
-      <div class="timer-grid">
-        <div class="channel">
-          <div class="timer-icon">⏱</div><h3>Countdown · Auto OFF</h3>
-          <div class="field"><label for="countdownMinutes">Minutes from now</label><input id="countdownMinutes" type="number" min="1" max="10080" value="30"></div>
-          <div class="actions"><button class="primary" id="startCountdown">Start countdown</button></div>
-        </div>
-        <div class="channel">
-          <div class="timer-icon">☾</div><h3>Sleep · Fade to OFF</h3>
-          <div class="field"><label for="sleepMinutes">Fade duration (minutes)</label><input id="sleepMinutes" type="number" min="1" max="1440" value="30"></div>
-          <div class="actions"><button class="primary" id="startSleep">Start sleep timer</button></div>
-        </div>
-        <div class="channel">
-          <div class="timer-icon">◷</div><h3>Daily schedule · IST</h3>
-          <div class="field"><label for="scheduleOn">Turn ON at</label><input id="scheduleOn" type="text" value="19:00" placeholder="HH:MM" maxlength="5"></div>
-          <div class="field"><label for="scheduleOff">Turn OFF at</label><input id="scheduleOff" type="text" value="23:00" placeholder="HH:MM" maxlength="5"></div>
-          <div class="actions"><button class="primary" id="saveSchedule">Save schedule</button><button id="disableSchedule">Disable</button></div>
-        </div>
-      </div>
-      <div class="actions"><button id="cancelTimers">Cancel countdown / sleep</button></div>
-      <div class="log" id="timerLog" role="status">Timers ready when MQTT is connected.</div>
-      <p class="hint">Scheduled ON turns on channels that are currently off at full brightness; channels already on retain their current brightness. Scheduled OFF turns both channels off. The schedule repeats daily. Countdown and sleep timers are not retained across ESP32 power loss.</p>
-    </section>
-
-    <div class="footer">LUMA STUDIO &nbsp;·&nbsp; Smart lighting, made personal &nbsp;·&nbsp; ESP32 + MQTT</div>
-  </div>
-
+<body><div class="shell">
+<header class="top"><div class="brand"><div class="logo">✦</div><div><h1>LUMA <span class="muted">V2</span></h1><p class="sub">Intelligent Lighting Studio · ESP32 + MQTT</p></div></div><div class="status" id="status"><span class="dot"></span><span id="statusText">Not connected</span></div></header>
+<div class="layout"><nav class="sidebar" aria-label="Dashboard navigation"><button class="nav active" data-view="dashboard"><span>◈</span>Dashboard</button><button class="nav" data-view="scenes"><span>✧</span>Scenes</button><button class="nav" data-view="automation"><span>◷</span>Automation</button><button class="nav" data-view="analytics"><span>▥</span>Analytics</button><button class="nav" data-view="device"><span>⌁</span>Device & MQTT</button></nav>
+<main class="main">
+<section id="dashboard" class="view active">
+<div class="hero"><div><div class="eyebrow">Your space, your light</div><h2>Find your <em>perfect glow.</em></h2><p class="sub">Your lighting, personalized. Adjust, automate and monitor your ESP32 lamp.</p><div class="buttons hero-actions"><button id="masterBtn" class="primary">⏻ Turn on</button><button id="homeConnectBtn" class="connect-home" type="button">Connect MQTT</button><span class="pill" id="heroState">Standby</span></div></div><div class="lamp-preview" id="lampPreview"><div class="halo"></div><div class="lamp" aria-hidden="true">💡</div></div></div>
+<div class="stats"><div class="card"><div class="stat-label">India time</div><div class="stat-val" id="clock">--:--</div><div class="sub" id="date">IST</div></div><div class="card"><div class="stat-label">Lamp output</div><div class="stat-val" id="output">OFF</div><div class="sub" id="outputDetail">White 0% · Warm 0%</div></div><div class="card"><div class="stat-label">Device</div><div class="stat-val" id="deviceStatus">Unknown</div><div class="sub" id="deviceDetail">Awaiting heartbeat</div></div><div class="card"><div class="stat-label">Estimated power</div><div class="stat-val" id="power">0.00 W</div><div class="sub">Model-based estimate</div></div></div>
+<div class="timer-countdown" aria-live="polite"><div class="timer-meta"><div class="timer-caption">Timer countdown</div><div class="stat-val" id="timerAction">No active timer</div><div class="timer-sub" id="timerDescription">Set a countdown or daily ON/OFF schedule in Automation.</div></div><div><div class="timer-big" id="timerRemaining">--:--:--</div><div class="timer-sub" id="timerSource">Waiting for a timer</div></div></div>
+<div class="grid2"><div class="card"><h3>Light controls</h3><p class="sub">Two independent PWM channels, 0–255.</p><div class="channel"><div class="row"><strong>☼ Cool / White</strong><span class="value" id="whiteValue">0</span></div><input id="whiteSlider" type="range" min="0" max="255" value="0" aria-label="Cool white brightness"><div class="ends"><span>Off</span><span id="whitePercent">0%</span></div></div><div class="channel warm"><div class="row"><strong>☀ Warm white</strong><span class="value" id="warmValue">0</span></div><input id="warmSlider" type="range" min="0" max="255" value="0" aria-label="Warm brightness"><div class="ends"><span>Off</span><span id="warmPercent">0%</span></div></div><div class="buttons"><button id="offBtn" class="danger">All off</button><button id="fullBtn">Full brightness</button></div><p class="hint">The preview reflects the most recent known or requested values; it is not proof that the physical lamp changed.</p></div>
+<div class="stack"><div class="card"><div class="row"><h3>Quick scenes</h3><button id="goScenes">Manage</button></div><div class="scene-grid" id="quickScenes"></div></div><div class="card"><h3>Lighting balance</h3><p class="sub">Simulated cool/warm mixing</p><div class="metric">Cool channel <b id="coolMix">0%</b></div><div class="metric">Warm channel <b id="warmMix">0%</b></div><div class="divider"></div><p class="sub">Last lamp state update</p><strong id="lastState">Never received</strong></div></div></div>
+</section>
+<section id="scenes" class="view"><div class="card"><h3>Lighting scenes</h3><p class="sub">Create and save presets locally in this browser. Apply any scene to both LED channels.</p><div class="scene-grid" id="allScenes"></div><div class="divider"></div><h4>Create custom scene</h4><div class="fields"><div class="field"><label for="sceneName">Scene name</label><input id="sceneName" maxlength="30" placeholder="My workspace"></div><div class="field"><label for="sceneIcon">Icon</label><select id="sceneIcon"><option>✨</option><option>📖</option><option>🌙</option><option>🎮</option><option>☀️</option><option>💡</option></select></div><div class="field"><label for="sceneWhite">White brightness (0–255)</label><input type="number" id="sceneWhite" min="0" max="255" value="190"></div><div class="field"><label for="sceneWarm">Warm brightness (0–255)</label><input type="number" id="sceneWarm" min="0" max="255" value="95"></div></div><button class="primary" id="saveScene">Save scene</button><p id="sceneMsg" class="hint" role="status"></p></div></section>
+<section id="automation" class="view"><div class="card"><h3>Automation center</h3><p class="sub">The ESP32 handles your existing countdown, sleep and daily schedule. Circadian mode and rules below are browser-based until added to firmware.</p><div class="note">Browser automation only operates while this page is open, connected, and allowed to run. For dependable unattended schedules, implement them on the ESP32.</div><div class="rule"><div class="row"><div><h4>☀ Circadian lighting</h4><p class="sub">Adjusts the two channels based on IST time, once per minute.</p></div><input class="switch" type="checkbox" id="circadian" aria-label="Enable circadian lighting"></div><div class="field"><label for="circadianPreset">Time profile</label><select id="circadianPreset"><option value="default">Default: morning / daytime / evening / night</option></select></div><p class="hint" id="circadianNext">Disabled</p></div><div class="rule"><h4>Existing ESP32 timers</h4><div class="fields"><div class="field"><label for="countdownMinutes">Countdown: auto OFF (minutes)</label><input type="number" id="countdownMinutes" min="1" max="10080" value="30"></div><div class="field"><label for="sleepMinutes">Sleep fade duration (minutes)</label><input type="number" id="sleepMinutes" min="1" max="1440" value="30"></div></div><div class="buttons"><button id="startCountdown">Start countdown</button><button id="startSleep">Start sleep fade</button><button id="cancelTimers">Cancel countdown / sleep</button></div><div class="fields"><div class="field"><label for="scheduleOn">Daily ON (IST, HH:MM)</label><input id="scheduleOn" type="time" value="19:00"></div><div class="field"><label for="scheduleOff">Daily OFF (IST, HH:MM)</label><input id="scheduleOff" type="time" value="23:00"></div></div><div class="buttons"><button class="primary" id="saveSchedule">Save daily schedule</button><button id="disableSchedule">Disable schedule</button></div><p class="hint" id="nextSchedule">No confirmed schedule state</p></div><div class="rule"><div class="row"><div><h4>🌘 Ambient light rule</h4><p class="sub">Requires an ESP32 light sensor publishing a lux value.</p></div><input type="checkbox" class="switch" id="ambientRule" aria-label="Enable ambient rule"></div><div class="fields"><div class="field"><label for="luxThreshold">Turn on below (lux)</label><input type="number" id="luxThreshold" min="0" max="100000" value="80"></div><div class="field"><label for="ambientScene">Scene to activate</label><select id="ambientScene"></select></div></div><p class="hint" id="luxReadout">No sensor reading yet. Rule only triggers on a new lux reading, with a 60-second cooldown.</p></div><div class="rule"><div class="row"><div><h4>🚶 No-motion auto off</h4><p class="sub">Requires an ESP32 motion sensor publishing occupied / clear.</p></div><input type="checkbox" class="switch" id="motionRule" aria-label="Enable motion rule"></div><div class="field"><label for="motionMinutes">Minutes after a clear reading</label><input type="number" id="motionMinutes" min="1" max="240" value="10"></div><p class="hint" id="motionReadout">No motion sensor reading yet.</p></div><p class="hint" id="timerLog" role="status">Timer commands ready when MQTT connects.</p></div></section>
+<section id="analytics" class="view"><div class="card"><h3>Energy analytics</h3><p class="sub">Estimates based on channel brightness and configured maximum wattage. No actual power measurement is available without a sensor.</p><div class="fields"><div class="field"><label for="whiteWatts">White channel maximum (W)</label><input type="number" id="whiteWatts" min="0" max="500" step="0.1" value="3"></div><div class="field"><label for="warmWatts">Warm channel maximum (W)</label><input type="number" id="warmWatts" min="0" max="500" step="0.1" value="3"></div><div class="field"><label for="electricRate">Electricity tariff (₹ / kWh)</label><input type="number" id="electricRate" min="0" max="100" step="0.1" value="8"></div></div><div class="buttons"><button id="saveEnergy">Save energy settings</button><button id="clearEnergy" class="danger">Reset energy history</button></div><div class="stats" style="margin-top:17px"><div class="card"><div class="stat-label">Today</div><div class="stat-val" id="todayEnergy">0 Wh</div></div><div class="card"><div class="stat-label">Last 7 days</div><div class="stat-val" id="weekEnergy">0 Wh</div></div><div class="card"><div class="stat-label">Estimated cost, 7d</div><div class="stat-val" id="weekCost">₹0.00</div></div><div class="card"><div class="stat-label">Current draw</div><div class="stat-val" id="currentPower">0 W</div></div></div><h4>Last 7 days · estimated Wh</h4><div id="energyChart" class="chart" aria-label="Daily estimated energy bar chart"></div><p class="hint">Estimates are accumulated while this browser tab is running, from locally known brightness values. Closing the page stops accumulation. They are not a complete physical usage history.</p></div></section>
+<section id="device" class="view"><div class="grid2"><div class="card"><h3>ESP32 device monitoring</h3><p class="sub">Optional telemetry topics; the original firmware works without them.</p><div class="metric">Device availability <b id="availability">Unknown</b></div><div class="metric">Wi-Fi RSSI <b id="rssi">—</b></div><div class="metric">Uptime <b id="uptime">—</b></div><div class="metric">Firmware <b id="firmware">—</b></div><div class="metric">Last heartbeat <b id="heartbeat">Never</b></div><div class="metric">Last acknowledgement <b id="ack">None</b></div><div class="metric">MQTT round-trip <b id="latency">—</b></div><div class="buttons"><button id="pingBtn">Ping device</button><button id="refreshBtn">Request current state</button></div><p class="hint">Ping/refresh require firmware support. A broker connection alone does not prove the lamp is online.</p></div><div class="card"><h3>MQTT connection</h3><p class="sub">Browser uses secure WebSockets (WSS) when hosted on HTTPS.</p><form id="settingsForm"><div class="field"><label for="host">Broker host</label><input id="host" value="broker.emqx.io" required></div><div class="fields"><div class="field"><label for="port">WebSocket port</label><input id="port" type="number" min="1" max="65535" value="8084" required></div><div class="field"><label for="path">WebSocket path</label><input id="path" value="/mqtt" required></div></div><div class="field"><label for="username">Username (optional)</label><input id="username" autocomplete="username"></div><div class="field"><label for="password">Password (not saved)</label><input id="password" type="password" autocomplete="current-password"></div><div class="field"><label for="clientId">Unique browser client ID</label><input id="clientId" required></div><div class="buttons"><button type="submit" class="primary">Connect</button><button type="button" id="disconnectBtn">Disconnect</button><button type="button" id="saveSettings">Save settings</button></div></form><p class="hint">Host, port, path, username and client ID are stored locally. Password remains in memory only.</p></div></div><div class="card" style="margin-top:16px"><h3>Activity log</h3><div class="log" id="log" role="status" aria-live="polite">Ready. Connect to MQTT to control your lamp.</div><div class="note" style="margin-top:14px">Public test brokers are not private. Use a private broker with authentication, TLS and topic ACLs for permanent use.</div></div></section>
+</main></div><footer class="footer">LUMA STUDIO · Intelligent lighting, made personal · ESP32 + MQTT</footer></div>
 <script>
-(() => {
-  const TOPICS = {
-    whiteSet: 'desk-lamp/a91c/white/set',
-    warmSet: 'desk-lamp/a91c/warm/set',
-    whiteState: 'desk-lamp/a91c/white/state',
-    warmState: 'desk-lamp/a91c/warm/state',
-    countdownSet: 'desk-lamp/a91c/timer/countdown/set',
-    sleepSet: 'desk-lamp/a91c/timer/sleep/set',
-    scheduleSet: 'desk-lamp/a91c/timer/schedule/set',
-    timerCancel: 'desk-lamp/a91c/timer/cancel',
-    timerState: 'desk-lamp/a91c/timer/state'
-  };
-  const $ = id => document.getElementById(id);
-  const status = $('status');
-  const statusText = $('statusText');
-  const logEl = $('log');
-  const timerLog = $('timerLog');
-  const connectBtn = $('connectBtn');
-  const disconnectBtn = $('disconnectBtn');
-  let client = null;
-  let whiteTimer = null;
-  let warmTimer = null;
-  let scheduleEnabled = localStorage.getItem('luma_schedule_enabled') === 'true';
-  let scheduleOnSaved = localStorage.getItem('luma_schedule_on') || $('scheduleOn').value;
-  let scheduleOffSaved = localStorage.getItem('luma_schedule_off') || $('scheduleOff').value;
-
-  function updateVisuals() {
-    const white = Number($('whiteSlider').value) || 0;
-    const warm = Number($('warmSlider').value) || 0;
-    $('whitePercent').textContent = Math.round(white / 255 * 100) + '%';
-    $('warmPercent').textContent = Math.round(warm / 255 * 100) + '%';
-    const total = Math.max(white, warm);
-    const visual = document.querySelector('.hero-visual');
-    visual.classList.toggle('lit', total > 0);
-    visual.style.setProperty('--glow-opacity', (0.08 + total / 255 * 0.92).toFixed(2));
-    visual.style.setProperty('--glow-scale', (0.65 + total / 255 * 1.05).toFixed(2));
-    const warmRatio = (white + warm) ? warm / (white + warm) : 0.5;
-    const r = Math.round(235 + 20 * warmRatio), g = Math.round(245 - 75 * warmRatio), b = Math.round(225 - 125 * warmRatio);
-    visual.style.setProperty('--shade-top', `rgb(${Math.min(255,r)},${Math.min(255,g)},${Math.min(255,b)})`);
-    visual.style.setProperty('--shade-bottom', warm > white ? '#ffbd72' : '#b9d39d');
-    visual.style.setProperty('--shade-glow', warm > white ? 'rgba(255,189,114,.65)' : 'rgba(185,242,124,.55)');
-    $('lampOutput').textContent = total === 0 ? 'OFF' : (white > 0 && warm > 0 ? 'MIXED LIGHT' : white > 0 ? 'COOL WHITE' : 'WARM LIGHT');
-    $('lampOutputDetail').textContent = `White ${Math.round(white/255*100)}% · Warm ${Math.round(warm/255*100)}%`;
-    $('heroLampState').textContent = total === 0 ? 'LAMP STANDBY' : `GLOW ${Math.round(total/255*100)}%`;
-  }
-  function updateClockAndSchedule() {
-    const now = new Date();
-    $('liveClock').textContent = now.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
-    $('liveDate').textContent = now.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',year:'numeric'});
-    if (!scheduleEnabled || !validHHMM(scheduleOnSaved) || !validHHMM(scheduleOffSaved)) {
-      $('nextSchedule').textContent = scheduleEnabled ? 'Check times' : 'Not set';
-      $('nextScheduleDetail').textContent = scheduleEnabled ? 'Enter valid 24-hour times' : 'Save a daily schedule to preview it';
-      return;
-    }
-    const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false}).format(now).split(':').map(Number);
-    const nowMins = parts[0]*60+parts[1];
-    const onMins = Number(scheduleOnSaved.slice(0,2))*60+Number(scheduleOnSaved.slice(3));
-    const offMins = Number(scheduleOffSaved.slice(0,2))*60+Number(scheduleOffSaved.slice(3));
-    let candidates = [{time:onMins,label:'ON'},{time:offMins,label:'OFF'}].map(x=>({...x,delta:(x.time-nowMins+1440)%1440}));
-    candidates.sort((a,b)=>a.delta-b.delta);
-    const next = candidates[0];
-    $('nextSchedule').textContent = `${next.label} · ${next.time===0?'00:00':String(Math.floor(next.time/60)).padStart(2,'0')+':'+String(next.time%60).padStart(2,'0')}`;
-    $('nextScheduleDetail').textContent = next.delta === 0 ? 'Scheduled time is now' : `In ${Math.floor(next.delta/60)}h ${next.delta%60}m · repeats daily`;
-  }
-
-  // Unique browser client ID, generated once and retained in this browser.
-  const idKey = 'luma_mqtt_client_id';
-  let savedId = localStorage.getItem(idKey);
-  if (!savedId) {
-    savedId = 'luma-web-' + Math.random().toString(16).slice(2, 10);
-    localStorage.setItem(idKey, savedId);
-  }
-  $('clientId').value = savedId;
-
-  function log(message) {
-    const time = new Date().toLocaleTimeString();
-    logEl.textContent = `${time} — ${message}`;
-  }
-  function setStatus(online, text) {
-    status.classList.toggle('online', online);
-    statusText.textContent = text;
-    connectBtn.disabled = !!(client && client.connected);
-  }
-  function currentSettings() {
-    let path = $('path').value.trim() || '/mqtt';
-    if (!path.startsWith('/')) path = '/' + path;
-    return {
-      host: $('host').value.trim(),
-      port: Number($('port').value),
-      path,
-      username: $('username').value,
-      password: $('password').value,
-      clientId: $('clientId').value.trim()
-    };
-  }
-  function saveSettings(showMessage = true) {
-    const s = currentSettings();
-    localStorage.setItem('luma_mqtt_settings', JSON.stringify(s));
-    localStorage.setItem(idKey, s.clientId);
-    if (showMessage) log('Settings saved in this browser.');
-  }
-  function loadSettings() {
-    try {
-      const s = JSON.parse(localStorage.getItem('luma_mqtt_settings') || '{}');
-      if (s.host) $('host').value = s.host;
-      if (s.port) $('port').value = s.port;
-      if (s.path) $('path').value = s.path;
-      if (s.username) $('username').value = s.username;
-      if (s.password) $('password').value = s.password;
-      if (s.clientId) $('clientId').value = s.clientId;
-    } catch (_) {}
-  }
-  function publish(topic, value) {
-    if (!client || !client.connected) {
-      log('Not connected. Connect to MQTT before changing brightness.');
-      return false;
-    }
-    client.publish(topic, String(value), { qos: 0, retain: false }, err => {
-      if (err) log('Publish failed: ' + err.message);
-    });
-    return true;
-  }
-  function sendSlider(which, immediate = false) {
-    const slider = $(which + 'Slider');
-    const value = Number(slider.value);
-    $(which + 'Value').textContent = value;
-    updateVisuals();
-    const topic = which === 'white' ? TOPICS.whiteSet : TOPICS.warmSet;
-    const timerName = which === 'white' ? 'whiteTimer' : 'warmTimer';
-    clearTimeout(which === 'white' ? whiteTimer : warmTimer);
-    const send = () => publish(topic, value);
-    if (immediate) send();
-    else if (which === 'white') whiteTimer = setTimeout(send, 100);
-    else warmTimer = setTimeout(send, 100);
-  }
-  function preset(white, warm) {
-    $('whiteSlider').value = white;
-    $('warmSlider').value = warm;
-    $('whiteValue').textContent = white;
-    $('warmValue').textContent = warm;
-    updateVisuals();
-    publish(TOPICS.whiteSet, white);
-    publish(TOPICS.warmSet, warm);
-  }
-  function disconnect() {
-    if (client) {
-      try { client.end(true); } catch (_) {}
-      client = null;
-    }
-    setStatus(false, 'Not connected');
-    log('Disconnected.');
-  }
-  function connect() {
-    if (!window.mqtt) {
-      log('MQTT library did not load. Check internet access and reload this page.');
-      return;
-    }
-    if (client) {
-      try { client.end(true); } catch (_) {}
-      client = null;
-    }
-    const s = currentSettings();
-    if (!s.host || !s.port || !s.clientId) {
-      log('Please fill in broker host, port, and client ID.');
-      return;
-    }
-    saveSettings(false);
-    const securePage = location.protocol === 'https:';
-    const scheme = securePage ? 'wss' : 'ws';
-    const url = `${scheme}://${s.host}:${s.port}${s.path}`;
-    setStatus(false, 'Connecting…');
-    log('Connecting to ' + url);
-    const options = {
-      clientId: s.clientId,
-      clean: true,
-      connectTimeout: 10000,
-      reconnectPeriod: 3000,
-      keepalive: 30
-    };
-    if (s.username) options.username = s.username;
-    if (s.password) options.password = s.password;
-    try {
-      client = mqtt.connect(url, options);
-      client.on('connect', () => {
-        setStatus(true, 'MQTT connected');
-        log('Connected. Subscribing to lamp state topics…');
-        client.subscribe([TOPICS.whiteState, TOPICS.warmState, TOPICS.timerState], err => {
-          if (err) log('Connected, but subscribe failed: ' + err.message);
-          else log('Connected and subscribed. Move a slider to send brightness.');
-        });
-      });
-      client.on('reconnect', () => {
-        setStatus(false, 'Reconnecting…');
-        log('Connection lost; trying to reconnect…');
-      });
-      client.on('close', () => setStatus(false, 'Disconnected'));
-      client.on('offline', () => {
-        setStatus(false, 'Offline');
-        log('Browser MQTT client is offline.');
-      });
-      client.on('error', err => {
-        setStatus(false, 'Connection error');
-        log('MQTT error: ' + (err && err.message ? err.message : String(err)));
-      });
-      client.on('message', (topic, payload) => {
-        if (topic === TOPICS.timerState) { timerLog.textContent = new Date().toLocaleTimeString() + ' — ESP32: ' + payload.toString(); return; }
-        const value = Number(payload.toString());
-        if (!Number.isFinite(value)) return;
-        if (topic === TOPICS.whiteState && value >= 0 && value <= 255) {
-          $('whiteSlider').value = value;
-          $('whiteValue').textContent = value;
-          updateVisuals();
-        } else if (topic === TOPICS.warmState && value >= 0 && value <= 255) {
-          $('warmSlider').value = value;
-          $('warmValue').textContent = value;
-          updateVisuals();
-        }
-      });
-    } catch (err) {
-      setStatus(false, 'Connection error');
-      log('Could not start MQTT connection: ' + err.message);
-    }
-  }
-
-  $('settingsForm').addEventListener('submit', e => { e.preventDefault(); connect(); });
-  $('disconnectBtn').addEventListener('click', disconnect);
-  $('saveBtn').addEventListener('click', () => saveSettings(true));
-  $('whiteSlider').addEventListener('input', () => sendSlider('white'));
-  $('warmSlider').addEventListener('input', () => sendSlider('warm'));
-  $('whiteSlider').addEventListener('change', () => sendSlider('white', true));
-  $('warmSlider').addEventListener('change', () => sendSlider('warm', true));
-  $('allOff').addEventListener('click', () => preset(0, 0));
-  $('study').addEventListener('click', () => preset(220, 35));
-  $('relax').addEventListener('click', () => preset(25, 210));
-  $('bright').addEventListener('click', () => preset(255, 255));
-  $('reading').addEventListener('click', () => preset(190, 95));
-  $('gaming').addEventListener('click', () => preset(150, 150));
-  $('night').addEventListener('click', () => preset(0, 24));
-
-  function publishTimer(topic, value) {
-    if (!client || !client.connected) { timerLog.textContent = 'Connect to MQTT before setting a timer.'; return false; }
-    client.publish(topic, String(value), { qos: 0, retain: false }, err => {
-      timerLog.textContent = err ? ('Timer command failed: ' + err.message) : ('Sent timer command: ' + value);
-    });
-    return true;
-  }
-  function validHHMM(value) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(value); }
-  $('startCountdown').addEventListener('click', () => {
-    const minutes = Number($('countdownMinutes').value);
-    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080) { timerLog.textContent = 'Enter 1 to 10080 minutes.'; return; }
-    publishTimer(TOPICS.countdownSet, minutes * 60);
-  });
-  $('startSleep').addEventListener('click', () => {
-    const minutes = Number($('sleepMinutes').value);
-    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) { timerLog.textContent = 'Enter 1 to 1440 minutes.'; return; }
-    publishTimer(TOPICS.sleepSet, minutes);
-  });
-  $('saveSchedule').addEventListener('click', () => {
-    const on = $('scheduleOn').value.trim();
-    const off = $('scheduleOff').value.trim();
-    if (!validHHMM(on) || !validHHMM(off)) { timerLog.textContent = 'Use 24-hour HH:MM times, for example 19:00.'; return; }
-    if (publishTimer(TOPICS.scheduleSet, on + ',' + off)) { scheduleEnabled = true; scheduleOnSaved = on; scheduleOffSaved = off; localStorage.setItem('luma_schedule_enabled','true'); localStorage.setItem('luma_schedule_on',on); localStorage.setItem('luma_schedule_off',off); updateClockAndSchedule(); }
-  });
-  $('disableSchedule').addEventListener('click', () => { if (publishTimer(TOPICS.scheduleSet, 'OFF')) { scheduleEnabled = false; localStorage.setItem('luma_schedule_enabled','false'); updateClockAndSchedule(); } });
-  $('cancelTimers').addEventListener('click', () => publishTimer(TOPICS.timerCancel, 'CANCEL'));
-
-  loadSettings();
-  if (validHHMM(scheduleOnSaved)) $('scheduleOn').value = scheduleOnSaved;
-  if (validHHMM(scheduleOffSaved)) $('scheduleOff').value = scheduleOffSaved;
-  updateVisuals();
-  updateClockAndSchedule();
-  setInterval(updateClockAndSchedule, 1000);
-  setStatus(false, 'Not connected');
+(()=>{'use strict';
+const BASE='desk-lamp/a91c';
+const T={whiteSet:BASE+'/white/set',warmSet:BASE+'/warm/set',whiteState:BASE+'/white/state',warmState:BASE+'/warm/state',countdownSet:BASE+'/timer/countdown/set',sleepSet:BASE+'/timer/sleep/set',scheduleSet:BASE+'/timer/schedule/set',timerCancel:BASE+'/timer/cancel',timerState:BASE+'/timer/state',availability:BASE+'/device/availability',telemetry:BASE+'/device/telemetry',ack:BASE+'/device/ack',ping:BASE+'/device/ping',pong:BASE+'/device/pong',request:BASE+'/device/state/request',lux:BASE+'/sensor/lux',motion:BASE+'/sensor/motion'};
+const $=id=>document.getElementById(id);const store=(key,val)=>localStorage.setItem('luma_v2_'+key,JSON.stringify(val));const read=(key,fallback)=>{try{const v=JSON.parse(localStorage.getItem('luma_v2_'+key));return v??fallback}catch{return fallback}};
+const defaults=[{id:'study',name:'Study',icon:'📚',white:220,warm:35},{id:'relax',name:'Relax',icon:'🌇',white:25,warm:210},{id:'bright',name:'Bright',icon:'☀️',white:255,warm:255},{id:'reading',name:'Reading',icon:'📖',white:190,warm:95},{id:'gaming',name:'Gaming',icon:'🎮',white:150,warm:150},{id:'night',name:'Night',icon:'🌙',white:0,warm:24}];
+let custom=read('scenes',[]);if(!Array.isArray(custom))custom=[];const scenes=()=>[...defaults,...custom];
+let client=null,white=0,warm=0,lastNonzero={white:190,warm:95},connected=false,deviceOnline=false,lastHeartbeat=0,dirty=false,sliderTimers={},lastCircadianKey='',lastAmbientAt=0,lastAmbientLow=false,motionClearAt=null,lastMotionReading=0,motionFired=false,lastStateTime=0,pendingPings=new Map();
+let schedule=read('schedule',null),energy=read('energy',{}),energyConfig=read('energyConfig',{whiteWatts:3,warmWatts:3,rate:8});
+let activeTimer=read('activeTimer',null);
+let settings=read('mqtt',{host:'broker.emqx.io',port:8084,path:'/mqtt',username:'',clientId:''});
+if(!settings.clientId){settings.clientId='luma-web-'+(globalThis.crypto?.randomUUID?.()||Math.random().toString(16).slice(2));store('mqtt',settings)}
+function log(s){const line=new Date().toLocaleTimeString('en-IN')+' — '+s;const el=$('log');el.textContent=line+'\n'+el.textContent.slice(0,5500)}
+function stateLabel(){return connected?'MQTT connected':'MQTT disconnected'}
+function status(){ $('status').classList.toggle('online',connected);$('statusText').textContent=stateLabel();$('deviceStatus').textContent=deviceOnline?'Online':lastHeartbeat?'Offline':'Unknown';$('deviceDetail').textContent=deviceOnline?'Heartbeat received':lastHeartbeat?'Heartbeat timed out':'Awaiting heartbeat';$('availability').textContent=deviceOnline?'Online':lastHeartbeat?'Offline':'Unknown';const home=$('homeConnectBtn');if(home){home.textContent=connected?'Manage connection ✓':'Connect MQTT';home.classList.toggle('connected',connected);home.setAttribute('aria-label',connected?'Open MQTT settings':'Connect to MQTT')}}
+function clamp(v){return Math.max(0,Math.min(255,Math.round(Number(v)||0)))}
+function watts(){return white/255*energyConfig.whiteWatts+warm/255*energyConfig.warmWatts}
+function visuals(){for(const [name,val] of [['white',white],['warm',warm]]){$(name+'Slider').value=val;$(name+'Value').textContent=val;$(name+'Percent').textContent=Math.round(val/255*100)+'%'}const total=Math.max(white,warm),sum=white+warm;const warmRatio=sum?warm/sum:.5;const color=`rgb(255,${Math.round(235-60*warmRatio)},${Math.round(185-80*warmRatio)})`;$('lampPreview').style.setProperty('--light-color',color);$('lampPreview').style.setProperty('--glow',String(total/255*.85));$('output').textContent=!total?'OFF':white&&warm?'MIXED':white?'COOL':'WARM';$('outputDetail').textContent=`White ${Math.round(white/255*100)}% · Warm ${Math.round(warm/255*100)}%`;$('heroState').textContent=!total?'Standby':`Glow ${Math.round(total/255*100)}%`;$('masterBtn').textContent=total?'⏻ Turn off':'⏻ Turn on';$('coolMix').textContent=(sum?Math.round(white/sum*100):0)+'%';$('warmMix').textContent=(sum?Math.round(warm/sum*100):0)+'%';$('power').textContent=watts().toFixed(2)+' W';$('currentPower').textContent=watts().toFixed(2)+' W';if(total)lastNonzero={white,warm}}
+function setLocal(w,h){white=clamp(w);warm=clamp(h);visuals()}
+function pub(topic,payload,opts={}){if(!client?.connected){log('Not connected — command not sent');return false}client.publish(topic,String(payload),{qos:opts.qos??0,retain:false},err=>{if(err)log('Publish failed: '+err.message)});return true}
+// Legacy brightness topics remain QoS 0. QoS 1 is used for optional new firmware commands.
+function sendChannel(name,value){const topic=name==='white'?T.whiteSet:T.warmSet;return pub(topic,value)}
+function preset(w,h,reason='Scene'){setLocal(w,h);const a=sendChannel('white',white),b=sendChannel('warm',warm);if(a&&b)log(reason+` requested (${white}/${warm})`);return a&&b}
+function applyScene(s){preset(s.white,s.warm,s.name);document.querySelectorAll('.scene').forEach(el=>el.classList.toggle('selected',el.dataset.scene===s.id))}
+function renderScenes(){const html=(s,editable)=>`<button class="scene" data-scene="${s.id}" type="button"><span style="font-size:23px">${s.icon}</span><b></b><small></small></button>`;for(const [container,items] of [['quickScenes',defaults],['allScenes',scenes()]]){const el=$(container);el.replaceChildren();for(const s of items){const wrap=document.createElement('div');wrap.style.minWidth='0';const btn=document.createElement('button');btn.type='button';btn.className='scene';btn.style.width='100%';btn.dataset.scene=s.id;const ico=document.createElement('div');ico.style.fontSize='22px';ico.textContent=s.icon;const name=document.createElement('b');name.textContent=s.name;const small=document.createElement('small');small.textContent=`${s.white} / ${s.warm}`;btn.append(ico,name,small);btn.addEventListener('click',()=>applyScene(s));wrap.append(btn);if(container==='allScenes'&&custom.some(x=>x.id===s.id)){const del=document.createElement('button');del.className='danger';del.style.marginTop='5px';del.style.width='100%';del.textContent='Delete';del.addEventListener('click',()=>{custom=custom.filter(x=>x.id!==s.id);store('scenes',custom);renderScenes()});wrap.append(del)}el.append(wrap)}}const select=$('ambientScene');const previous=select.value;select.replaceChildren();for(const s of scenes()){const option=document.createElement('option');option.value=s.id;option.textContent=s.name;select.append(option)}if(scenes().some(s=>s.id===previous))select.value=previous}
+function setView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===id))}document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));$('goScenes').onclick=()=>setView('scenes');
+function getSettings(){return{host:$('host').value.trim(),port:Number($('port').value),path:($('path').value.trim().startsWith('/')?'':'/')+$('path').value.trim(),username:$('username').value.trim(),clientId:$('clientId').value.trim()}}
+function saveSettings(){settings=getSettings();store('mqtt',settings);log('Connection settings saved (password excluded)')}
+function disconnect(){const old=client;client=null;connected=false;deviceOnline=false;pendingPings.clear();if(old)old.end(true);status();log('Disconnected')}
+function connect(){if(typeof mqtt==='undefined'){log('MQTT.js failed to load. Check your internet connection');return}const s=getSettings();if(!s.host||!Number.isInteger(s.port)||s.port<1||s.port>65535||!s.clientId){log('Invalid connection settings');return}if(!/^[a-zA-Z0-9.-]+$/.test(s.host)){log('Broker host must be a hostname or IP address');return}saveSettings();disconnectSilently();const protocol=(s.port===8084||location.protocol==='https:')?'wss':'ws';const url=`${protocol}://${s.host}:${s.port}${s.path}`;log('Connecting to '+url);const opts={clientId:s.clientId,clean:true,connectTimeout:10000,reconnectPeriod:3000,keepalive:30};if(s.username)opts.username=s.username;if($('password').value)opts.password=$('password').value;let c;try{c=mqtt.connect(url,opts)}catch(e){log('Connection error: '+e.message);return}client=c;c.on('connect',()=>{if(client!==c)return;connected=true;status();log('Connected; subscribing to state and telemetry');c.subscribe([T.whiteState,T.warmState,T.timerState,T.availability,T.telemetry,T.ack,T.pong,T.lux,T.motion],{qos:0},err=>{if(err)log('Subscribe error: '+err.message);else log('Subscribed successfully')});pub(T.request,'GET',{qos:1})});c.on('reconnect',()=>{if(client!==c)return;connected=false;status();log('Reconnecting…')});c.on('close',()=>{if(client!==c)return;connected=false;status()});c.on('offline',()=>{if(client!==c)return;connected=false;status();log('MQTT offline')});c.on('error',err=>{if(client===c)log('MQTT error: '+err.message)});c.on('message',(topic,payload)=>{if(client!==c)return;handleMessage(topic,payload.toString())})}
+function disconnectSilently(){if(client){const c=client;client=null;c.end(true)}connected=false;deviceOnline=false;status()}
+function handleMessage(topic,msg){if(topic===T.whiteState||topic===T.warmState){const val=Number(msg);if(!Number.isInteger(val)||val<0||val>255)return;if(topic===T.whiteState)white=val;else warm=val;lastStateTime=Date.now();$('lastState').textContent=new Date().toLocaleTimeString('en-IN');visuals();return}if(topic===T.timerState){$('timerLog').textContent='ESP32: '+msg;log('Timer state: '+msg.slice(0,100));return}if(topic===T.availability){deviceOnline=msg.trim().toLowerCase()==='online';lastHeartbeat=Date.now();$('heartbeat').textContent=new Date().toLocaleTimeString('en-IN');status();return}if(topic===T.telemetry){try{const d=JSON.parse(msg);if(typeof d.rssi==='number')$('rssi').textContent=d.rssi+' dBm';if(typeof d.uptime==='number')$('uptime').textContent=Math.floor(d.uptime/60)+' min';if(typeof d.firmware==='string')$('firmware').textContent=d.firmware.slice(0,40);lastHeartbeat=Date.now();deviceOnline=true;$('heartbeat').textContent=new Date().toLocaleTimeString('en-IN');status()}catch{log('Invalid telemetry JSON')}return}if(topic===T.ack){$('ack').textContent=msg.slice(0,80);return}if(topic===T.pong){const start=pendingPings.get(msg);if(start){$('latency').textContent=(performance.now()-start).toFixed(0)+' ms';pendingPings.delete(msg)}return}if(topic===T.lux){const lux=Number(msg);if(Number.isFinite(lux)&&lux>=0){$('luxReadout').textContent=`Ambient: ${lux.toFixed(1)} lux`;ambientUpdate(lux)}return}if(topic===T.motion){const v=msg.trim().toLowerCase();if(['occupied','motion','1','true'].includes(v)){motionClearAt=null;motionFired=false;lastMotionReading=Date.now();$('motionReadout').textContent='Motion detected'}else if(['clear','0','false'].includes(v)){if(motionClearAt===null)motionClearAt=Date.now();lastMotionReading=Date.now();$('motionReadout').textContent='Area clear'}}}
+function ambientUpdate(lux){if(!$('ambientRule').checked||!connected)return;const threshold=Number($('luxThreshold').value);if(!Number.isFinite(threshold)||threshold<0)return;const low=lux<threshold;if(low&&!lastAmbientLow&&Date.now()-lastAmbientAt>=60000){const scene=scenes().find(s=>s.id===$('ambientScene').value);if(scene){applyScene(scene);lastAmbientAt=Date.now()}}lastAmbientLow=low}
+function istParts(){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date()).split(':').map(Number);return{hour:parts[0]%24,minute:parts[1],second:parts[2]}}
+function circadianScene(hour){if(hour>=6&&hour<11)return{white:220,warm:40,name:'Morning'};if(hour>=11&&hour<17)return{white:180,warm:100,name:'Daytime'};if(hour>=17&&hour<22)return{white:40,warm:210,name:'Evening'};return{white:0,warm:24,name:'Night'}}
+function tick(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',second:'2-digit'});$('date').textContent=now.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric'});const ist=istParts();if($('circadian').checked){const s=circadianScene(ist.hour);$('circadianNext').textContent=`Current profile: ${s.name} (${s.white}/${s.warm})`;const key=ist.hour+':'+ist.minute;if(key!==lastCircadianKey&&connected){lastCircadianKey=key;preset(s.white,s.warm,'Circadian '+s.name)}}else $('circadianNext').textContent='Disabled';if(deviceOnline&&Date.now()-lastHeartbeat>90000){deviceOnline=false;status()}if($('motionRule').checked&&connected&&motionClearAt!==null&&!motionFired&&Date.now()-motionClearAt>=Number($('motionMinutes').value)*60000){preset(0,0,'No motion');motionFired=true}updateSchedulePreview();renderTimerCountdown()}
+function updateSchedulePreview(){if(!schedule){$('nextSchedule').textContent='No locally saved schedule';return}const p=istParts(),now=p.hour*60+p.minute;const on=Number(schedule.on.slice(0,2))*60+Number(schedule.on.slice(3));const off=Number(schedule.off.slice(0,2))*60+Number(schedule.off.slice(3));const events=[{time:on,name:'ON'},{time:off,name:'OFF'}].map(e=>({...e,delta:(e.time-now+1440)%1440})).sort((a,b)=>a.delta-b.delta);$('nextSchedule').textContent=`Next: ${events[0].name} at ${String(Math.floor(events[0].time/60)).padStart(2,'0')}:${String(events[0].time%60).padStart(2,'0')} IST (local preview; device not confirmed)`}
+function nextScheduleEvent(){if(!schedule)return null;const p=istParts(),now=p.hour*3600+p.minute*60+p.second;const on=Number(schedule.on.slice(0,2))*3600+Number(schedule.on.slice(3))*60;const off=Number(schedule.off.slice(0,2))*3600+Number(schedule.off.slice(3))*60;const events=[{time:on,name:'Turn ON',clock:schedule.on},{time:off,name:'Turn OFF',clock:schedule.off}].map(e=>({...e,deltaSeconds:(e.time-now+86400)%86400})).sort((a,b)=>a.deltaSeconds-b.deltaSeconds);return events[0]}
+function formatRemaining(ms){const total=Math.max(0,Math.floor(ms/1000));const d=Math.floor(total/86400),h=Math.floor(total%86400/3600),m=Math.floor(total%3600/60),sec=total%60;return (d?String(d)+'d ':'')+[h,m,sec].map(v=>String(v).padStart(2,'0')).join(':')}
+function renderTimerCountdown(){const now=Date.now();if(activeTimer&&activeTimer.endAt>now){$('timerAction').textContent=activeTimer.label;$('timerRemaining').textContent=formatRemaining(activeTimer.endAt-now);$('timerDescription').textContent=activeTimer.label==='Sleep fade'?'Lamp fade-to-off is in progress.':'ESP32 countdown is running.';$('timerSource').textContent='Browser countdown estimate · ESP32 execution not confirmed';return}if(activeTimer&&activeTimer.endAt<=now){activeTimer=null;store('activeTimer',null)}const next=nextScheduleEvent();if(next){$('timerAction').textContent=next.name;$('timerRemaining').textContent=formatRemaining(next.deltaSeconds*1000);$('timerDescription').textContent='Next daily schedule event at '+next.clock+' IST.';$('timerSource').textContent='Daily schedule preview · device execution not confirmed';return}$('timerAction').textContent='No active timer';$('timerRemaining').textContent='--:--:--';$('timerDescription').textContent='Set a countdown or daily ON/OFF schedule in Automation.';$('timerSource').textContent='Waiting for a timer'}
+function startLocalTimer(label,minutes){activeTimer={label,endAt:Date.now()+minutes*60000};store('activeTimer',activeTimer);renderTimerCountdown()}
+function timerPub(topic,value){if(pub(topic,value))$('timerLog').textContent='Sent request: '+value+' (awaiting ESP32 confirmation)'}
+function validInt(id,min,max){const n=Number($(id).value);return Number.isInteger(n)&&n>=min&&n<=max?n:null}
+function energyDay(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'})}
+let lastEnergy=Date.now();function accrue(){const now=Date.now();const seconds=Math.max(0,Math.min(10,(now-lastEnergy)/1000));lastEnergy=now;if(seconds>0&&connected&&lastStateTime>0&&now-lastStateTime<120000){const day=energyDay();energy[day]=(energy[day]||0)+watts()*seconds/3600;store('energy',energy)}renderEnergy()}
+function lastSeven(){const result=[];const today=new Date();for(let i=6;i>=0;i--){const d=new Date(today.getTime()-i*86400000);const key=d.toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'});result.push({key,value:energy[key]||0})}return result}
+function renderEnergy(){const days=lastSeven(),total=days.reduce((a,x)=>a+x.value,0);$('todayEnergy').textContent=(energy[energyDay()]||0).toFixed(2)+' Wh';$('weekEnergy').textContent=total.toFixed(2)+' Wh';$('weekCost').textContent='₹'+(total/1000*energyConfig.rate).toFixed(2);const max=Math.max(1,...days.map(x=>x.value));const chart=$('energyChart');chart.replaceChildren();for(const d of days){const bar=document.createElement('div');bar.className='bar';bar.style.height=Math.max(2,d.value/max*100)+'%';bar.title=d.key+': '+d.value.toFixed(2)+' Wh';chart.append(bar)}}
+function bind(){for(const name of ['white','warm']){const slider=$(name+'Slider');slider.addEventListener('input',()=>{const v=clamp(slider.value);if(name==='white')white=v;else warm=v;visuals();clearTimeout(sliderTimers[name]);sliderTimers[name]=setTimeout(()=>sendChannel(name,v),140)});slider.addEventListener('change',()=>{clearTimeout(sliderTimers[name]);sendChannel(name,clamp(slider.value))})}$('masterBtn').onclick=()=>white||warm?preset(0,0,'Master OFF'):preset(lastNonzero.white||190,lastNonzero.warm||95,'Master ON');$('homeConnectBtn').onclick=()=>connected?setView('device'):connect();$('offBtn').onclick=()=>preset(0,0,'All OFF');$('fullBtn').onclick=()=>preset(255,255,'Full brightness');$('saveScene').onclick=()=>{const name=$('sceneName').value.trim(),w=validInt('sceneWhite',0,255),h=validInt('sceneWarm',0,255);if(!name||w===null||h===null){$('sceneMsg').textContent='Enter a name and valid values from 0 to 255';return}if(custom.length>=30){$('sceneMsg').textContent='Maximum 30 custom scenes';return}custom.push({id:'custom-'+Date.now()+'-'+Math.random().toString(16).slice(2),name,icon:$('sceneIcon').value,white:w,warm:h});store('scenes',custom);renderScenes();$('sceneMsg').textContent='Scene saved locally';$('sceneName').value=''};
+$('settingsForm').onsubmit=e=>{e.preventDefault();connect()};$('disconnectBtn').onclick=disconnect;$('saveSettings').onclick=saveSettings;$('pingBtn').onclick=()=>{const id=String(Date.now());if(pub(T.ping,id,{qos:1})){pendingPings.set(id,performance.now());setTimeout(()=>pendingPings.delete(id),10000)}};$('refreshBtn').onclick=()=>pub(T.request,'GET',{qos:1});$('startCountdown').onclick=()=>{const n=validInt('countdownMinutes',1,10080);if(n===null){$('timerLog').textContent='Enter 1–10080 minutes';return}if(timerPub(T.countdownSet,n*60))startLocalTimer('Auto OFF',n)};$('startSleep').onclick=()=>{const n=validInt('sleepMinutes',1,1440);if(n===null){$('timerLog').textContent='Enter 1–1440 minutes';return}if(timerPub(T.sleepSet,n))startLocalTimer('Sleep fade',n)};$('cancelTimers').onclick=()=>{if(timerPub(T.timerCancel,'CANCEL')){activeTimer=null;store('activeTimer',null);renderTimerCountdown()}};$('saveSchedule').onclick=()=>{const on=$('scheduleOn').value,off=$('scheduleOff').value;if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(on)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(off)||on===off){$('timerLog').textContent='Enter two distinct valid HH:MM times';return}if(pub(T.scheduleSet,on+','+off)){schedule={on,off};store('schedule',schedule);updateSchedulePreview();renderTimerCountdown();$('timerLog').textContent='Schedule requested; awaiting device confirmation'}};$('disableSchedule').onclick=()=>{if(pub(T.scheduleSet,'OFF')){schedule=null;store('schedule',null);updateSchedulePreview();renderTimerCountdown();$('timerLog').textContent='Schedule disable requested'}};
+for(const id of ['circadian','ambientRule','motionRule']){$(id).checked=!!read(id,false);$(id).addEventListener('change',()=>{store(id,$(id).checked);if(id==='circadian'){lastCircadianKey='';if($(id).checked&&$('ambientRule').checked){$('ambientRule').checked=false;store('ambientRule',false);log('Ambient rule disabled to avoid conflicting lighting commands')}}if(id==='ambientRule'&&$(id).checked&&$('circadian').checked){$('circadian').checked=false;store('circadian',false);log('Circadian mode disabled to avoid conflicting lighting commands')}if(id==='motionRule'){motionClearAt=null;motionFired=false}})}
+$('saveEnergy').onclick=()=>{const a=Number($('whiteWatts').value),b=Number($('warmWatts').value),r=Number($('electricRate').value);if(![a,b,r].every(Number.isFinite)||a<0||b<0||r<0||a>500||b>500||r>100){log('Invalid energy configuration');return}energyConfig={whiteWatts:a,warmWatts:b,rate:r};store('energyConfig',energyConfig);visuals();renderEnergy();log('Energy model saved')};$('clearEnergy').onclick=()=>{if(confirm('Clear locally stored energy estimates?')){energy={};store('energy',energy);renderEnergy()}}}
+function init(){for(const id of ['host','port','path','username','clientId'])$(id).value=settings[id]??'';for(const [id,v] of [['whiteWatts',energyConfig.whiteWatts],['warmWatts',energyConfig.warmWatts],['electricRate',energyConfig.rate]])$(id).value=v;if(schedule){$('scheduleOn').value=schedule.on;$('scheduleOff').value=schedule.off}renderScenes();bind();visuals();status();tick();renderTimerCountdown();renderEnergy();setInterval(tick,1000);setInterval(accrue,5000);log('LUMA V2 ready. Connect to your ESP32 broker.')}init();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
+
+
+
